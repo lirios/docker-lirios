@@ -21,9 +21,12 @@
 # $END_LICENSE$
 #
 
-FROM local/lirios/x86_64
+FROM lirios/base
 MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
-RUN mkdir /run/lirios && chown lirios:lirios /run/lirios && chmod 0700 /run/lirios
+RUN useradd -G wheel,video,input -ms /bin/bash lirios && \
+    echo "lirios:U6aMy0wojraho" | chpasswd -e && \
+    echo "lirios ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    mkdir /run/lirios && chown lirios:lirios /run/lirios && chmod 0700 /run/lirios
 ADD startsession /usr/bin/startsession
 ENV XDG_RUNTIME_DIR=/run/lirios
 USER lirios
