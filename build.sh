@@ -37,7 +37,7 @@ echo en_US.UTF-8 UTF-8 >> /etc/locale.gen
 locale-gen
 
 # Remove unnecessary files
-rm -rf /usr/share/man/* /usr/share/info/* /usr/share/doc/* /usr/include/* /usr/lib/pkgconfig /usr/lib/cmake /var/lib/pacman
+rm -rf /README /usr/share/man/* /usr/share/info/* /usr/share/doc/* /usr/include/* /usr/lib/pkgconfig /usr/lib/cmake /var/lib/pacman
 
 # Create the user
 useradd -G wheel,video,input -ms /bin/bash lirios
