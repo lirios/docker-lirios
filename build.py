@@ -77,6 +77,7 @@ def download_file(url, dest_path):
                 total = int(total)
                 written = 0
                 for data in r.iter_content(chunk_size=4096):
+                    f.write(data)
                     written += len(data)
                     done = int(50 * written / total)
                     sys.stdout.write('\r[{}{}]'.format('=' * done, ' ' * (50 - done)))
