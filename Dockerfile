@@ -26,11 +26,13 @@ MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@liri.io>
 ARG arch=x86_64
 RUN apk add --no-cache tar
 RUN pip install requests
+ARG today=1
 COPY createrootfs.py .
 RUN ./createrootfs.py --arch=${arch}
 
 FROM scratch
 MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@liri.io>
+ARG today=1
 ARG arch=x86_64
 COPY --from=builder root.${arch}/ /
 COPY build.sh .
