@@ -26,30 +26,8 @@ import sys
 import os
 import shutil
 
-CONTAINER_NAME = 'lirios/base'
-
-CHROOT_DIR = 'chroot'
-
 ARCH_LINUX_MIRROR = 'https://mirrors.lug.mtu.edu/archlinux'
 ARCH_LINUX_ARCH = 'x86_64'
-
-PACKAGES_LIST = [
-    'sudo',
-    'liri-shell-git',
-    'liri-wayland-git',
-    'liri-workspace-git',
-    'liri-settings-git',
-    'liri-files-git',
-    'liri-appcenter-git',
-    'liri-terminal-git',
-    'liri-wallpapers-git',
-    'liri-themes-git',
-    'xorg-server',
-    'xorg-server-utils',
-    'mesa-libgl',
-    'phonon-qt5-gstreamer'
-]
-PACKAGES_TO_REMOVE = []
 
 
 class CommandError(Exception):
@@ -126,33 +104,6 @@ def append_to_file(filename, text):
         f.write(text)
 
 
-def mount_chroot(root_dir, chroot_dir):
-    """
-    Mount directory `root_dir` to `chroot_dir` for chroot.
-    """
-    os.system('mount --bind {} {}'.format(root_dir, chroot_dir))
-    for dir in ('proc', 'sys', 'dev', 'dev/pts', 'dev/shm', 'run'):
-        os.system('mount --bind /{dir} {to}/{dir}'.format(dir=dir, to=root_dir))
-
-
-def umount_chroot(chroot_dir):
-    """
-    Unmount chroot mounted at `chroot_dir`.
-    """
-    for dir in ('proc', 'sys', 'dev/pts', 'dev/shm', 'dev', 'run'):
-        os.system('umount {to}/{dir}'.format(dir=dir, to=chroot_dir))
-    os.system('umount {}'.format(chroot_dir))
-
-
-def chroot(chroot_dir, cmd):
-    """
-    Execute command `cmd` in the chroot `chroot_dir`.
-    """
-    print(cmd)
-    if os.system('sudo setarch {arch} chroot {chroot} /bin/bash -c "{cmd}"'.format(arch=ARCH_LINUX_ARCH, chroot=chroot_dir, cmd=cmd)) != 0:
-        raise CommandError('Chroot command failed')
-
-
 def setup_dev(root_dir):
     """
     Create a static /dev directory for containers.
@@ -179,7 +130,7 @@ def setup_dev(root_dir):
         os.system('mknod -m {mode} {path}/{name} {args}'.format(name=device, path=dev_dir, mode=devices[device]['mode'], args=devices[device]['args']))
 
 
-def setup_chroot(archive_filename):
+def setup_rootfs(archive_filename):
     """
     Set OS root up uncompressing the `archive_filename` tar archive.
     """
@@ -189,6 +140,7 @@ def setup_chroot(archive_filename):
     if os.path.exists(root_dir):
         shutil.rmtree(root_dir)
     # Extract base archive
+    print('Extracting {} into {}'.format(archive_filename, root_dir))
     tar = tarfile.open(archive_filename, 'r')
     tar.extractall()
     tar.close()
@@ -203,42 +155,14 @@ def setup_chroot(archive_filename):
     append_to_file(mirror_filename, 'Server = {}/$repo/os/$arch\n'.format(ARCH_LINUX_MIRROR))
     # Add Google nameserver to resolv.conf
     append_to_file(resolvconf_filename, 'nameserver 8.8.8.8')
-    # Mount chroot
-    mount_chroot(root_dir, CHROOT_DIR)
-    # Update packages, install Liri OS and setup
-    chroot(CHROOT_DIR, 'pacman -Syu --noconfirm')
-    chroot(CHROOT_DIR, 'pacman -S --noconfirm haveged procps-ng')
-    chroot(CHROOT_DIR, 'haveged -w 1024; pacman-key --init; pkill haveged; pacman -Rs --noconfirm haveged; pacman-key --populate archlinux; pkill gpg-agent')
-    if len(PACKAGES_LIST) > 0:
-        chroot(CHROOT_DIR, 'pacman -S --noconfirm {}'.format(' '.join(PACKAGES_LIST)))
-    if len(PACKAGES_TO_REMOVE) > 0:
-        chroot(CHROOT_DIR, 'pacman -R --noconfirm {}'.format(' '.join(PACKAGES_TO_REMOVE)))
-    # Setup locale
-    chroot(CHROOT_DIR, 'ln -sf /usr/share/zoneinfo/UTC /etc/localtime')
-    append_to_file(os.path.join(CHROOT_DIR, 'etc', 'locale.gen'), 'en_US.UTF-8 UTF-8')
-    chroot(CHROOT_DIR, 'locale-gen')
-    # Remove unnecessary files
-    chroot(CHROOT_DIR, 'rm -rf /usr/share/man/* /usr/share/info/* /usr/share/doc/* /usr/include/* /usr/lib/pkgconfig /usr/lib/cmake /var/lib/pacman')
-    # Unmount chroot
-    umount_chroot(CHROOT_DIR)
     # Setup /dev
     setup_dev(root_dir)
-
-
-def create_container(name):
-    """
-    Create a base container with the Arch Linux system.
-    """
-    if os.system('tar --numeric-owner --xattrs --acls -C root.{} -c . | docker import - {}'.format(ARCH_LINUX_ARCH, name)) != 0:
-        raise CommandError('Failed to create container ' + name)
 
 
 if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Create Arch Linux base container')
-    parser.add_argument('-n', '--name', dest='name', type=str,
-                        help='container name (default: %s)' % CONTAINER_NAME)
     parser.add_argument('--arch', dest='arch', type=str,
                         help='architecture (default: %s)' % ARCH_LINUX_ARCH)
     parser.add_argument('--mirror', dest='mirror', type=str,
@@ -248,8 +172,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.name:
-        CONTAINER_NAME = args.name
     if args.arch:
         ARCH_LINUX_ARCH = args.arch
     if args.mirror:
@@ -259,12 +181,7 @@ if __name__ == '__main__':
     else:
         archive_filename = find_iso()
     if archive_filename:
-        try:
-            setup_chroot(archive_filename)
-        except Exception as e:
-            umount_chroot(CHROOT_DIR)
-            raise e
-        create_container(CONTAINER_NAME)
+        setup_rootfs(archive_filename)
     else:
         print('Unable to find an Arch Linux ISO!', file=sys.stderr)
         sys.exit(1)

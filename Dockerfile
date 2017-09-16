@@ -21,12 +21,20 @@
 # $END_LICENSE$
 #
 
-FROM lirios/base
-MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@gmail.com>
-RUN useradd -G wheel,video,input -ms /bin/bash lirios && \
-    echo "lirios:U6aMy0wojraho" | chpasswd -e && \
-    echo "lirios ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    mkdir /run/lirios && chown lirios:lirios /run/lirios && chmod 0700 /run/lirios
+FROM python:3-alpine AS builder
+MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@liri.io>
+ARG arch=x86_64
+RUN apk add --no-cache tar
+RUN pip install requests
+COPY createrootfs.py .
+RUN ./createrootfs.py --arch=${arch}
+
+FROM scratch
+MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@liri.io>
+ARG arch=x86_64
+COPY --from=builder root.${arch}/ /
+COPY build.sh .
+RUN ./build.sh && rm -f build.sh
 ADD startsession /usr/bin/startsession
 ENV XDG_RUNTIME_DIR=/run/lirios
 USER lirios
