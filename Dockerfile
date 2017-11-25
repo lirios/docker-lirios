@@ -24,7 +24,7 @@
 FROM python:3-alpine AS builder
 MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@liri.io>
 ARG arch=x86_64
-RUN apk add --no-cache tar
+RUN apk add --no-cache tar curl
 RUN pip install requests
 ARG today=1
 RUN curl https://raw.githubusercontent.com/lirios/archbuild/master/docker/createrootfs/createrootfs.py > createrootfs.py \
