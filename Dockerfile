@@ -27,14 +27,16 @@ ARG arch=x86_64
 RUN apk add --no-cache tar
 RUN pip install requests
 ARG today=1
-COPY createrootfs.py .
-RUN ./createrootfs.py --arch=${arch}
+RUN curl https://raw.githubusercontent.com/lirios/archbuild/master/docker/createrootfs/createrootfs.py > createrootfs.py \
+        && python createrootfs.py --arch=${arch} --nameserver=8.8.8.8 --siglevel-never --lirios-repo
 
 FROM scratch
 MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@liri.io>
 ARG today=1
 ARG arch=x86_64
 COPY --from=builder root.${arch}/ /
+RUN curl https://raw.githubusercontent.com/lirios/archbuild/master/docker/createrootfs/setup.sh > setup.sh \
+        && bash setup.sh && rm -f setup.sh
 COPY build.sh .
 RUN ./build.sh && rm -f build.sh
 ADD startsession /usr/bin/startsession
