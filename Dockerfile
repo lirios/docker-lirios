@@ -26,8 +26,7 @@ MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@liri.io>
 ARG channel=unstable
 COPY build.sh .
 RUN ./build.sh ${channel} 28 && rm -f build.sh
-ADD startsession /usr/bin/startsession
 ENV XDG_RUNTIME_DIR=/run/lirios
 USER lirios
 WORKDIR /home/lirios
-CMD ["/usr/bin/startsession"]
+CMD ["/usr/bin/liri-session"]
