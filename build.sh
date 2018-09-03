@@ -24,25 +24,47 @@
 
 set -e
 
+channel=$1
+releasever=$2
+
+if [ -z "$channel" -o -z "$releasever" ]; then
+    echo "Usage: $0 <channel> <releasever>"
+    echo
+    echo "<channel> can be either 'stable' or 'unstable'"
+    exit 1
+fi
+
+# Repository
+curl "https://copr.fedorainfracloud.org/coprs/plfiorini/liri-unstable/repo/fedora-${releasever}/plfiorini-liri-${channel}-fedora-${releasever}.repo" > /etc/yum.repos.d/plfiorini-liri-${channel}.repo
+
 # Install packages
-pacman -S --noconfirm \
-    sudo \
-    sed \
-    liri-shell-git \
-    liri-wayland-git \
-    liri-workspace-git \
-    liri-settings-git \
-    liri-files-git \
-    liri-appcenter-git \
-    liri-terminal-git \
-    liri-wallpapers-git \
-    liri-themes-git \
-    xorg-server \
-    mesa-libgl \
-    phonon-qt5-gstreamer
+dnf install -y \
+    liri-materialdecoration \
+    liri-networkmanager \
+    liri-platformtheme \
+    liri-power-manager \
+    liri-pulseaudio \
+    liri-screencast \
+    liri-screenshot \
+    liri-settings \
+    liri-shell \
+    liri-wallpapers \
+    qml-xwayland \
+    xdg-desktop-portal-liri \
+    paper-icon-theme \
+    liri-color-schemes \
+    liri-appcenter \
+    liri-calculator \
+    liri-files \
+    liri-terminal \
+    liri-browser \
+    liri-text
+
+# Clean up
+dnf clean all
 
 # Remove unnecessary files
-rm -rf /README /usr/share/man/* /usr/share/info/* /usr/share/doc/* /usr/include/* /usr/lib/pkgconfig /usr/lib/cmake /var/lib/pacman
+rm -rf /usr/share/man/* /usr/share/info/* /usr/share/doc/* /usr/include/* /usr/lib{,64}/pkgconfig /usr/lib{,64}/cmake
 
 # Create the user
 useradd -G wheel,video,input -ms /bin/bash lirios

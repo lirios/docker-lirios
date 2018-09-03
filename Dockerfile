@@ -21,24 +21,11 @@
 # $END_LICENSE$
 #
 
-FROM python:3-alpine AS builder
+FROM fedora:28
 MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@liri.io>
-ARG arch=x86_64
-RUN apk add --no-cache tar curl
-RUN pip install requests
-ARG today=1
-RUN curl https://raw.githubusercontent.com/lirios/archbuild/master/docker/createrootfs/createrootfs.py > createrootfs.py \
-        && python createrootfs.py --arch=${arch} --nameserver=8.8.8.8 --siglevel-never --lirios-repo
-
-FROM scratch
-MAINTAINER Pier Luigi Fiorini <pierluigi.fiorini@liri.io>
-ARG today=1
-ARG arch=x86_64
-COPY --from=builder root.${arch}/ /
-RUN curl https://raw.githubusercontent.com/lirios/archbuild/master/docker/createrootfs/setup.sh > setup.sh \
-        && bash setup.sh && rm -f setup.sh
+ARG channel=unstable
 COPY build.sh .
-RUN ./build.sh && rm -f build.sh
+RUN ./build.sh ${channel} 28 && rm -f build.sh
 ADD startsession /usr/bin/startsession
 ENV XDG_RUNTIME_DIR=/run/lirios
 USER lirios
